@@ -6,6 +6,11 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import train_test_split
 import os
 from datetime import datetime
+from sklearn.linear_model import LogisticRegression
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.svm import SVC
+from sklearn.metrics import accuracy_score
+
 
 app = Flask(__name__)
 
@@ -16,49 +21,76 @@ label_encoders = {}
 feature_columns = None
 
 def load_and_train_model():
-    """Load dataset and train the model"""
+    """Load dataset, train multiple models, and select the best one"""
     global model, scaler, label_encoders, feature_columns
-    
-    # Check if dataset exists
+
     if not os.path.exists('student_placement_data.csv'):
-        print("⚠️ Dataset not found. Please upload 'student_placement_data.csv'")
+        print("⚠️ Dataset not found")
         return False
-    
+
     # Load dataset
     df = pd.read_csv('student_placement_data.csv')
-    
-    # Drop name column if exists
+
     if 'name' in df.columns:
         df = df.drop(columns=['name'])
-    
+
     # Encode categorical columns
     cat_cols = ['gender', 'branch', 'domain', 'internship', 'certifications']
-    
     for col in cat_cols:
-        if col in df.columns:
-            le = LabelEncoder()
-            df[col] = le.fit_transform(df[col])
-            label_encoders[col] = le
-    
-    # Separate features and target
+        le = LabelEncoder()
+        df[col] = le.fit_transform(df[col])
+        label_encoders[col] = le
+
+    # Features & target
     X = df.drop(columns=['placement_status'])
-    y = df['placement_status'].map({'Placed': 1, 'Not Placed': 0}) if df['placement_status'].dtype == 'object' else df['placement_status']
-    
+    y = df['placement_status'].map({'Placed': 1, 'Not Placed': 0}) \
+        if df['placement_status'].dtype == 'object' else df['placement_status']
+
     feature_columns = X.columns.tolist()
-    
-    # Split and scale
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-    
+
+    # Train-test split
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, test_size=0.2, random_state=42
+    )
+
+    # Scaling
     scaler = StandardScaler()
     X_train_scaled = scaler.fit_transform(X_train)
-    
-    # Train Random Forest (best performer)
-    model = RandomForestClassifier(n_estimators=100, random_state=42)
-    model.fit(X_train_scaled, y_train)
-    
-    print("✅ Model trained successfully!")
-    print(f"📊 Features used: {feature_columns}")
+    X_test_scaled = scaler.transform(X_test)
+
+    # Models for comparison
+    models = {
+        "Logistic Regression": LogisticRegression(max_iter=1000),
+        "Decision Tree": DecisionTreeClassifier(random_state=42),
+        "SVM": SVC(probability=True),
+        "Random Forest": RandomForestClassifier(n_estimators=100, random_state=42)
+    }
+
+    best_accuracy = 0
+    best_model = None
+    best_model_name = ""
+
+    # Train & evaluate models
+    for name, clf in models.items():
+        clf.fit(X_train_scaled, y_train)
+        y_pred = clf.predict(X_test_scaled)
+        acc = accuracy_score(y_test, y_pred)
+
+        print(f"📊 {name} Accuracy: {acc:.4f}")
+
+        if acc > best_accuracy:
+            best_accuracy = acc
+            best_model = clf
+            best_model_name = name
+
+    model = best_model
+
+    print(f"\n✅ Best Model Selected: {best_model_name}")
+    print(f"🏆 Best Accuracy: {best_accuracy:.4f}")
+    print(f"📌 Features Used: {feature_columns}")
+
     return True
+
 
 def save_to_dataset(student_data):
     """Save student data to CSV"""
