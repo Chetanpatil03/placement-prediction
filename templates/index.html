@@ -163,65 +163,6 @@
         </form>
     </div>
 
-    <script>
-        document.getElementById('predictionForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            
-            const loading = document.getElementById('loading');
-            const result = document.getElementById('result');
-            const submitBtn = e.target.querySelector('button[type="submit"]');
-            
-            // Show loading
-            loading.style.display = 'block';
-            result.style.display = 'none';
-            submitBtn.disabled = true;
-            
-            // Prepare form data
-            const formData = new FormData(e.target);
-            
-            try {
-                const response = await fetch('/predict', {
-                    method: 'POST',
-                    body: formData
-                });
-                
-                const data = await response.json();
-                
-                // Hide loading
-                loading.style.display = 'none';
-                submitBtn.disabled = false;
-                
-                if (data.success) {
-                    // Show result
-                    result.className = 'result ' + (data.prediction === 'Placed' ? 'placed' : 'not-placed');
-                    
-                    const icon = data.prediction === 'Placed' ? '✅' : '⚠️';
-                    
-                    result.innerHTML = `
-                        <h2>${icon} ${data.prediction}!</h2>
-                        <p>Hello, <strong>${data.name}</strong></p>
-                        <div class="percentage">${data.placement_chance}%</div>
-                        <p>Placement Probability</p>
-                        <p style="margin-top: 20px; font-size: 0.95em; opacity: 0.8;">
-                            Your data has been saved to the database for future training.
-                        </p>
-                    `;
-                    
-                    result.style.display = 'block';
-                    
-                    // Scroll to result
-                    result.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-                } else {
-                    alert('Error: ' + data.error);
-                }
-                
-            } catch (error) {
-                loading.style.display = 'none';
-                submitBtn.disabled = false;
-                alert('An error occurred. Please try again.');
-                console.error(error);
-            }
-        });
-    </script>
+    <script src="/static/script.js"></script>
 </body>
 </html>

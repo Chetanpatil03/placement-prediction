@@ -72,6 +72,77 @@ def save_to_dataset(student_data):
         print(f"Error saving data: {e}")
         return False
 
+def analyze_student_profile(data):
+    """Analyze student profile and provide strengths and improvements"""
+    strengths = []
+    improvements = []
+    
+    # Analyze CGPA
+    if data['current_cgpa'] >= 8.5:
+        strengths.append(f"Excellent CGPA of {data['current_cgpa']}")
+    elif data['current_cgpa'] >= 7.5:
+        strengths.append(f"Good CGPA of {data['current_cgpa']}")
+    elif data['current_cgpa'] < 7.0:
+        improvements.append(f"Work on improving CGPA (currently {data['current_cgpa']})")
+    
+    # Analyze attendance
+    if data['attendance_percentage'] >= 85:
+        strengths.append(f"Strong attendance record ({data['attendance_percentage']}%)")
+    elif data['attendance_percentage'] < 75:
+        improvements.append(f"Improve attendance (currently {data['attendance_percentage']}%)")
+    
+    # Analyze aptitude score
+    if data['aptitude_score'] >= 70:
+        strengths.append(f"High aptitude score ({data['aptitude_score']})")
+    elif data['aptitude_score'] < 50:
+        improvements.append(f"Practice aptitude tests (current score: {data['aptitude_score']})")
+    
+    # Analyze communication skills
+    if data['communication_skills'] >= 8:
+        strengths.append(f"Excellent communication skills ({data['communication_skills']}/10)")
+    elif data['communication_skills'] <= 5:
+        improvements.append(f"Enhance communication skills (currently {data['communication_skills']}/10)")
+    
+    # Analyze technical skills
+    if data['technical_skills'] >= 8:
+        strengths.append(f"Strong technical abilities ({data['technical_skills']}/10)")
+    elif data['technical_skills'] <= 5:
+        improvements.append(f"Develop technical skills (currently {data['technical_skills']}/10)")
+    
+    # Analyze internship
+    if data['internship'] == 'Yes':
+        strengths.append("Has valuable internship experience")
+    else:
+        improvements.append("Gain internship experience")
+    
+    # Analyze certifications
+    cert_value = data['certifications']
+    if cert_value in ['More than 20', '15', '10']:
+        strengths.append(f"Multiple certifications ({cert_value})")
+    elif cert_value == 'Yes':
+        strengths.append("Has relevant certifications")
+    elif cert_value == 'No':
+        improvements.append("Obtain industry certifications")
+    
+    # Analyze academic consistency
+    avg_academic = (data['graduation_percentage'] + data['hsc'] + data['ssc']) / 3
+    if avg_academic >= 80:
+        strengths.append(f"Consistent academic performance (avg: {avg_academic:.1f}%)")
+    
+    # Default messages if lists are empty
+    if not strengths:
+        strengths.append("Motivated to improve")
+        strengths.append("Open to learning opportunities")
+    
+    if not improvements:
+        improvements.append("Continue maintaining current performance")
+        improvements.append("Explore leadership opportunities")
+    
+    return {
+        'strengths': strengths[:6],  # Limit to 5 items
+        'improvements': improvements[:6]
+    }
+
 @app.route('/')
 def index():
     return render_template('index.html')
@@ -127,6 +198,20 @@ def predict():
         # Get placement chance percentage
         placement_chance = round(probability[1] * 100, 2)
         
+        # Analyze strengths and improvements
+        analysis = analyze_student_profile({
+            'attendance_percentage': attendance_percentage,
+            'current_cgpa': current_cgpa,
+            'graduation_percentage': graduation_percentage,
+            'hsc': hsc,
+            'ssc': ssc,
+            'aptitude_score': aptitude_score,
+            'communication_skills': communication_skills,
+            'technical_skills': technical_skills,
+            'internship': internship,
+            'certifications': certifications
+        })
+        
         # Prepare data to save (with original values)
         data_to_save = {
             'name': name,
@@ -154,7 +239,8 @@ def predict():
             'success': True,
             'prediction': 'Placed' if prediction == 1 else 'Not Placed',
             'placement_chance': placement_chance,
-            'name': name
+            'name': name,
+            'analysis': analysis
         }
         
         return jsonify(result)
